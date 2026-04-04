@@ -18,10 +18,17 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 PASTA_UPLOADS = os.path.join('static', 'uploads')
 os.makedirs(PASTA_UPLOADS, exist_ok=True) 
+
+PASTA_DADOS = os.path.join(BASE_DIR, 'data')
+os.makedirs(PASTA_DADOS, exist_ok=True)
+
 app.config['UPLOAD_FOLDER'] = PASTA_UPLOADS
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///banco_historico.db'
+caminho_db = os.path.join(PASTA_DADOS, 'banco_historico.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{caminho_db}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -32,7 +39,7 @@ class Predicao(db.Model):
     certeza = db.Column(db.String(20), nullable=False)
     todas_probabilidades = db.Column(db.Text, nullable=False) 
     url_imagem = db.Column(db.String(200), nullable=False)
-    data_hora = db.Column(db.DateTime, default= datetime.now)
+    data_hora = db.Column(db.DateTime,default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
 
     
 emocoes = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']

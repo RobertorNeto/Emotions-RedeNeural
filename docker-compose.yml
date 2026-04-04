@@ -15,7 +15,7 @@ services:
     build: ./frontend
     container_name: synapsee_frontend
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - api_emocoes
     restart: always

@@ -25,7 +25,7 @@ interface HistoryResponse {
   historico: HistoricoItem[];
 }
 
-const API = 'https://nk3dkfqr-5000.brs.devtunnels.ms';
+const API = 'http://localhost:5000';
 
 export default function SentinelPulse() {
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
