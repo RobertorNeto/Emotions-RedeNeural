@@ -1,0 +1,25 @@
+services:
+  api_emocoes:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistência de dados e fotos
+      - ./backend/static/uploads:/app/static/uploads
+      - ./backend/data:/app/data
+    restart: always
+
+
+  frontend_app:
+    build: ./frontend
+    container_name: synapsee_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api_emocoes
+    restart: always
+
+networks:
+  default:
+    name: synapsee_network
