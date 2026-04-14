@@ -6,6 +6,8 @@ from torch.utils.data import Dataset, DataLoader, Subset
 import torch.nn as nn
 import pandas as pd
 import numpy as np
+from scipy.stats import zscore
+import mne  
 
 class EmotionCNN(nn.Module):
     def __init__(self):
@@ -51,6 +53,32 @@ modeloProducao.load_state_dict(torch.load('cnn1d.pth',map_location=device))
 modeloProducao.eval()
 print("Modelo Pronto para Produção")
 
+def processar_csv_em_memoria(arquivo_csv):
+    canais_oficiais = ['AF3', 'AF4', 'F3', 'F4', 'F7', 'F8', 'FC5', 'FC6', 'O1', 'O2', 'P7', 'P8', 'T7', 'T8']
+    
+    df = pd.read_csv(arquivo_csv)
+    if all(canal in df.columns for canal in canais_oficiais):
+        df_limpo = df[canais_oficiais]
+    else:
+        df_limpo = df.iloc[:, :14]
+        
+    df_volts = df_limpo.T * 1e-6
+    array_volts = df_volts.to_numpy()
+    
+    info = mne.create_info(ch_names=canais_oficiais, sfreq=128, ch_types='eeg')
+    info.set_montage('standard_1020')
+    raw = mne.io.RawArray(array_volts, info, verbose=False)
+    
+    raw.filter(l_freq=0.5, h_freq=45.0, fir_design='firwin', verbose=False)
+    
+    epochs = mne.make_fixed_length_epochs(raw, duration=1.0, overlap=0.5, verbose=False)
+    matriz_3d = epochs.get_data() # Formato: (Lotes, 14, 128)
+    
+    matriz_3d_norm = zscore(matriz_3d, axis=2)
+    matriz_3d_norm = np.nan_to_num(matriz_3d_norm)
+    
+    return matriz_3d_norm
+
 @app.route('/chute',methods=['POST'])
 def previsao():
     if 'file' not in request.files:
@@ -62,21 +90,20 @@ def previsao():
         return jsonify({'erro' : 'Nenhum arquivo selecionado'}), 400
     
     try:
-        df = pd.read_csv(file)
-        array2d = df.to_numpy()
-
-        array3d = np.expand_dims(array2d,axis=0)
+        array3d = processar_csv_em_memoria(file)
         tensor_entrada = torch.tensor(array3d,dtype=torch.float32).to(device)
 
         with torch.no_grad():
             outputs = modeloProducao(tensor_entrada)
-            probabilidade = torch.nn.functional.softmax(outputs,dim=1)
-            confianca, chutado = torch.max(probabilidade,1)
+            probabilidades = torch.nn.functional.softmax(outputs,dim=1)
+            probabilidade_media = torch.mean(probabilidades, dim=0)
+            confianca, chutado = torch.max(probabilidade_media,1)
             jogo = dicionario_jogos[chutado.item()]
 
         return jsonify({
             'jogo':jogo,
-            'probabilidade': confianca.item()*100
+            'probabilidade': round(confianca.item() * 100, 2),
+            'janelas_analisadas': array3d.shape[0]
         })
 
     except Exception as e:
