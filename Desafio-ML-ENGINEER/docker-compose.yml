@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./aplicacao
+    container_name: synapsee-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./aplicacao:/app
+    command: python backend.py
+    restart: always
+
+  frontend:
+    build: ./aplicacao
+    container_name: synapsee-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:5000/chute
+    depends_on:
+      - backend
+    command: python -m streamlit run frontend.py --server.port 8501 --server.address 0.0.0.0
+    restart: always

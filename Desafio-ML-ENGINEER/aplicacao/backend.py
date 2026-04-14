@@ -63,7 +63,7 @@ def processar_csv_em_memoria(arquivo_csv):
         df_limpo = df.iloc[:, :14]
         
     df_volts = df_limpo.T * 1e-6
-    array_volts = df_volts.to_numpy()
+    array_volts = df_volts.to_numpy().copy()
     
     info = mne.create_info(ch_names=canais_oficiais, sfreq=128, ch_types='eeg')
     info.set_montage('standard_1020')
@@ -97,7 +97,7 @@ def previsao():
             outputs = modeloProducao(tensor_entrada)
             probabilidades = torch.nn.functional.softmax(outputs,dim=1)
             probabilidade_media = torch.mean(probabilidades, dim=0)
-            confianca, chutado = torch.max(probabilidade_media,1)
+            confianca, chutado = torch.max(probabilidade_media,0)
             jogo = dicionario_jogos[chutado.item()]
 
         return jsonify({
