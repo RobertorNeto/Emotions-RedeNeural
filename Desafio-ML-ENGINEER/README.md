@@ -73,3 +73,13 @@ Desafio-ML-ENGINEER/
 
 - Este projeto é orientado a **experimentos**: a evolução do modelo normalmente acontece via notebooks + ajustes no pipeline/modelo.
 - Caso o dataset não esteja versionado no repositório, inclua-o conforme a estratégia do projeto (download, volume, ou instruções no Compose).
+
+## Experimento de Ablação
+
+Para justificar a complexidade do pipeline de pré-processamento e engenharia de features, conduzi um experimento de ablação avaliando o impacto da remoção de componentes-chave do sistema. As métricas abaixo refletem a Acurácia Média obtida através de validação estrita *GroupKFold* (Cross-Subject).
+
+| Configuração do Pipeline | Baseline (Random Forest) | Deep Learning (CNN 1D) | Observação Técnica / Impacto |
+| :--- | :--- | :--- | :--- |
+| **Pipeline Completo** *(Filtro 0.5-45Hz + Z-Score + Features Estendidas)* | **71.54%** | **81.46%** | A convergência foi estável e a Matriz de Confusão apresentou forte diagonal principal. O RF se beneficiou enormemente das features extras de mínimo, máximo e frequência (70 features no total). |
+| **Sem Filtro de Ruído** *(Sem MNE Bandpass, mantendo Z-score)* | 52.91% | 80.66% | A CNN é robusta e conseguiu extrair os padrões locais compensando parte do ruído, mas o Baseline estatístico despencou 18%, mostrando que a sujeira de 60Hz da rede elétrica destrói a média/desvio do sinal. |
+| **Sem Normalização** *(Sinal Bruto, Sem Z-Score)* | 32.33% | 25.00% | **Colapso total do modelo.** Com 4 classes, 25% equivale a um chute aleatório (*Random Guessing*). A discrepância de amplitude entre os canais impediu a convergência dos gradientes na CNN. |
